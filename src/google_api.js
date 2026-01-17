@@ -301,7 +301,7 @@ ORDER BY total_qty DESC;`;
     return { status: 400, msg: error };
   }
 };
-
+//
 const getAllData = async () => {
   const queryStr = ` SELECT product_id,
         product_name,
