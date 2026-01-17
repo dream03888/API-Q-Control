@@ -20,25 +20,24 @@ const PORT = dotenv.parsed.PORT || 3000;
 // สร้าง HTTP Server
 const httpServer = http.createServer(app);
 httpServer.listen(PORT, "0.0.0.0", () => {
-  console.log(`🚀 HTTP Server running on:`);
-  console.log(`   Local:   http://localhost:${PORT}`);
-  console.log(`   Network: http://swapp.dyndns.org:${PORT}`);
+  console.log(`🚀 HTTP Server running on port ${PORT}`);
 });
 
 // สร้าง MySQL Pool
 const pool = new Pool({
-  host: process.env.PG_HOST,
-  user: process.env.PG_USER,
-  password: process.env.PG_PASSWORD,
-  database: process.env.PG_DATABASE,
-  port: process.env.PG_PORT
+  host: dotenv.parsed.PGHOST,
+  user: dotenv.parsed.PGUSER,
+  password: dotenv.parsed.PGPASSWORD,
+  database: dotenv.parsed.PGDATABASE,
+  port: dotenv.parsed.PGPORT
 });
+
 const pgClient = new Client({
-  host: dotenv.parsed.PG_HOST,
-  user: dotenv.parsed.PG_USER,
-  password: dotenv.parsed.PG_PASSWORD,
-  database: dotenv.parsed.PG_DATABASE,
-  port: dotenv.parsed.PG_PORT
+ host: dotenv.parsed.PGHOST,
+  user: dotenv.parsed.PGUSER,
+  password: dotenv.parsed.PGPASSWORD,
+  database: dotenv.parsed.PGDATABASE,
+  port: dotenv.parsed.PGPORT
 });
 // สร้าง Socket.io
 const io = require('socket.io')(httpServer, { 
