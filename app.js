@@ -284,6 +284,20 @@ socket.on("req_update_active", async (data) => {
     socket.emit("return_getDataBestseller", result);
   });
 
+
+
+
+
+
+
+    socket.on("getDataError", async () => {
+    const result = await google_api.GetdataError();
+    socket.emit("return_getDataError", result);
+  });
+
+
+
+
   socket.on("disconnect", () => {
     console.log(`❌ Socket disconnected: ${socket.id}`);
   });

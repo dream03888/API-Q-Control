@@ -187,35 +187,38 @@ WHERE  tg_transaction.date = CURRENT_DATE AND status = '4' ORDER BY time ASC`;
   }
 };
 ///----------------------------------BackHome------------------------------------------
-const GetdataPayment = async (startDate, endDate, startTime, endTime) => {
+const GetdataPayment = async () => {
   const queryStr = `SELECT 
-    t.transaction_id, t.amount, t.date, t.time, t.status, s.status_name, 
-    t.order_number, t.payment, t.charge_id, t.status_payment
-FROM tg_transaction t
-INNER JOIN tg_status s ON t.status::int = s.status_id
-WHERE
-    (t.date + t.time) >= COALESCE(NULLIF($1, '')::timestamp, date_trunc('day', CURRENT_TIMESTAMP))
-    AND (t.date + t.time) <= COALESCE(NULLIF($2, '')::timestamp, date_trunc('day', CURRENT_TIMESTAMP) + INTERVAL '1 day' - INTERVAL '1 second');
-;`;
-  const values = [startDate, endDate];
+    t.transaction_id,
+    t.amount,
+    t.date,
+    t.time,
+    t.status,
+    s.status_name,
+    t.order_number,
+    t.payment,
+    t.charge_id,
+    t.status_payment
+  FROM tg_transaction t
+  JOIN tg_status s ON t.status::int = s.status_id
+  WHERE (t.date + t.time) 
+    BETWEEN date_trunc('day', CURRENT_TIMESTAMP)
+    AND date_trunc('day', CURRENT_TIMESTAMP) + INTERVAL '1 day' - INTERVAL '1 second';`;
+
   try {
-    return pool
-      .query(queryStr, values)
-      .then((result) => {
-        if (result.rows.length < 1) {
-          return { status: 200, msg: [] };
-        }
-        return { status: 200, msg: result.rows };
-      })
-      .catch((error) => {
-        console.log("Error Funtions GetdataPayment" + error);
-        return { status: 201, msg: error };
-      });
+    const result = await pool.query(queryStr);
+
+    if (result.rows.length < 1) {
+      return { status: 204, msg: [] }; // ไม่มีข้อมูล
+    }
+
+    return { status: 200, msg: result.rows };
   } catch (error) {
-    console.log("Error Connect : " + error);
-    return { status: 400, msg: error };
+    console.log("❌ GetdataPayment error:", error);
+    return { status: 500, msg: error.message };
   }
 };
+
 const GetdataPaymentByData = async (transaction_id, startDate, endDate) => {
   const queryStr = `SELECT json, slips , amount , charge_id
 FROM tg_transaction
@@ -330,6 +333,24 @@ const getAllData = async () => {
   }
 };
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 const upProductActive = async (data) => {
   console.log("data", data);
   try {
@@ -354,6 +375,91 @@ const upProductActive = async (data) => {
   }
 };
 
+
+
+
+
+
+
+
+const GetdataError = async () => {
+  const queryStr = `                  WITH item_cooking AS (
+        SELECT
+            DISTINCT tg_log_index.ticket,
+            jsonb_agg(
+                json_build_object(
+                   'product_name',tg_product.product_name,
+           'option_name_eng',tg_option.option_name_thai ,
+           'option_name_thai',tg_option.option_name_eng ,
+            'qty',tg_log_index.qty ,
+             'option_price',tg_log_option.unit_price ,
+           'item_index',tg_log_option.item_index ,
+           'unit_price',tg_product.unit_price ,
+           'option_qty', CASE
+            WHEN option_price = 0 THEN 0
+            ELSE   tg_log_option.option_qty
+            END,
+           'option_sum', option_price *  tg_log_option.option_qty  
+                ) ORDER BY tg_log_option.item_index ASC
+            ) as items
+        FROM tg_log_index
+        LEFT join tg_log_option ON tg_log_index.index = tg_log_option.index
+        LEFT JOIN  tg_option ON tg_log_option.option_id = tg_option.option_id
+        LEFT JOIN tg_product ON tg_log_index.product_id = tg_product.product_id
+        WHERE tg_product.product_id NOT IN (18)
+        GROUP BY  tg_log_index.ticket 
+        ORDER BY tg_log_index.ticket ASC
+    )
+        SELECT 
+item_cooking.items,
+tg_log.amount,
+tg_log.status as status_payment ,
+tg_log.date_time::date as date,
+tg_log.date_time::time as time,
+tg_log.type as payment, 
+tg_log.payment as pp,
+tg_log.ticket as order_number,
+log_id as charge_id
+FROM tg_log
+LEFT JOIN item_cooking ON tg_log.ticket = item_cooking.ticket
+WHERE date_time::date = CURRENT_DATE
+GROUP BY tg_log.ticket ,
+item_cooking.items,
+tg_log.amount,
+tg_log.status,
+tg_log.date_time,
+tg_log.type,
+tg_log.payment,
+tg_log.ticket,
+log_id
+
+ORDER BY tg_log.ticket ASC;`;
+  try {
+    return pool
+      .query(queryStr)
+      .then((result) => {
+        if (result.rows.length < 1) {
+          return { status: 200, msg: [] };
+        }
+        return { status: 200, msg: result.rows };
+      })
+      .catch((error) => {
+        console.log("Error Funtions getDataBestseller" + error);
+        return { status: 201, msg: error };
+      });
+  } catch (error) {
+    console.log("Error Connect : " + error);
+    return { status: 400, msg: error };
+  }
+};
+
+
+
+
+
+
+
+
 module.exports = {
   getGoogleTextToSpeech,
   formatQueueNumber,
@@ -373,4 +479,6 @@ module.exports = {
   getDataBestseller,
   upProductActive,
   getAllData,
+  //---------------------
+  GetdataError
 };

@@ -25,19 +25,18 @@ httpServer.listen(PORT, "0.0.0.0", () => {
 
 // สร้าง MySQL Pool
 const pool = new Pool({
-  host: dotenv.parsed.PGHOST,
-  user: dotenv.parsed.PGUSER,
-  password: dotenv.parsed.PGPASSWORD,
-  database: dotenv.parsed.PGDATABASE,
-  port: dotenv.parsed.PGPORT
+  host: process.env.PG_HOST,
+  user: process.env.PG_USER,
+  password: process.env.PG_PASSWORD,
+  database: process.env.PG_DATABASE,
+  port: process.env.PG_PORT
 });
-
 const pgClient = new Client({
- host: dotenv.parsed.PGHOST,
-  user: dotenv.parsed.PGUSER,
-  password: dotenv.parsed.PGPASSWORD,
-  database: dotenv.parsed.PGDATABASE,
-  port: dotenv.parsed.PGPORT
+  host: dotenv.parsed.PG_HOST,
+  user: dotenv.parsed.PG_USER,
+  password: dotenv.parsed.PG_PASSWORD,
+  database: dotenv.parsed.PG_DATABASE,
+  port: dotenv.parsed.PG_PORT
 });
 // สร้าง Socket.io
 const io = require('socket.io')(httpServer, { 
