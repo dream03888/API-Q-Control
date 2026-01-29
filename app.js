@@ -294,6 +294,54 @@ socket.on("req_update_active", async (data) => {
     const result = await google_api.GetdataError();
     socket.emit("return_getDataError", result);
   });
+//----------Report
+   socket.on("reportData", async (startDate , endDate) => {
+    const result = await google_api.ReportData(startDate , endDate);
+    socket.emit("return_reportData", result);
+  });
+
+
+socket.on("reportDataProduct", async (startDate , endDate) => {
+    const result = await google_api.ReportDataProduct(startDate , endDate);
+    socket.emit("return_reportDataProduct", result);
+  });
+
+
+socket.on("ReportDataPayment", async (startDate , endDate) => {
+    const result = await google_api.ReportDataPayment(startDate , endDate);
+    socket.emit("return_ReportDataPayment", result);
+  });
+
+
+socket.on("ReportDataInPayment", async (payload) => {
+  try {
+    const {
+      startDate,
+      endDate,
+      payment,
+      page = 1,
+      limit = 20
+    } = payload || {};
+
+    const result = await google_api.ReportDataInPayment(
+      startDate,
+      endDate,
+      payment,
+      page,
+      limit
+    );
+
+    socket.emit("return_ReportDataInPayment", result);
+
+  } catch (err) {
+    socket.emit("return_ReportDataInPayment", {
+      status: 500,
+      msg: err
+    });
+  }
+});
+
+
 
 
 

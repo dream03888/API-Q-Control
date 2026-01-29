@@ -454,9 +454,296 @@ ORDER BY tg_log.ticket ASC;`;
 };
 
 
+const ReportData = async (startDate , endDate) => {
+  const queryStr = `                  WITH item_cooking AS (
+    SELECT
+        tg_index.transaction_id,
+        jsonb_agg(
+            jsonb_build_object(
+                'product_name', tg_product.product_name,
+                'option_name_eng', tg_option.option_name_thai,
+                'option_name_thai', tg_option.option_name_eng,
+                'qty', tg_index.qty,
+                'option_price', tg_option_transaction.unit_price,
+                'item_index', tg_option_transaction.item_index,
+                'unit_price', tg_product.unit_price,
+                'option_qty',
+                    CASE
+                        WHEN tg_option_transaction.unit_price = 0 THEN 0
+                        ELSE tg_option_transaction.option_qty
+                    END,
+                'option_sum',
+                    tg_option_transaction.unit_price * tg_option_transaction.option_qty
+            )
+            ORDER BY tg_option_transaction.item_index ASC
+        ) AS items
+    FROM tg_index
+    LEFT JOIN tg_option_transaction ON tg_index.index = tg_option_transaction.index
+    LEFT JOIN tg_option ON tg_option_transaction.option_id = tg_option.option_id
+    LEFT JOIN tg_product ON tg_index.product_id = tg_product.product_id
+    WHERE tg_product.product_id NOT IN (18)
+    GROUP BY tg_index.transaction_id
+),
+
+bill_summary AS (
+    SELECT
+         t.transaction_id,
+       t.amount,
+        ROUND((t.amount) / 1.07, 2) AS before_vat,
+        ROUND(((t.amount) - (t.amount) / 1.07), 2) AS vat_amount,
+        ROUND((t.amount), 2) AS after_vat
+    FROM tg_transaction t
+    INNER JOIN tg_index i ON t.transaction_id = i.transaction_id
+    INNER JOIN tg_product p ON i.product_id = p.product_id
+WHERE t.date >= COALESCE(NULLIF($1, '')::timestamp, CURRENT_DATE)
+  AND t.date <= COALESCE(NULLIF($2, '')::timestamp, CURRENT_DATE)
+      GROUP BY t.transaction_id , t.amount
+)
+
+SELECT 
+    t.order_number,
+    q.queue,
+    t.transaction_id,
+    ic.items,
+    bs.amount,
+    bs.before_vat,
+    bs.vat_amount,
+    bs.after_vat,
+    t.slips,
+    t.payment
+    
+FROM tg_transaction t
+LEFT JOIN item_cooking ic ON t.transaction_id = ic.transaction_id
+LEFT JOIN bill_summary bs ON t.transaction_id = bs.transaction_id
+LEFT JOIN tg_queue q ON t.transaction_id = q.transaction_id
+
+WHERE t.date >= COALESCE(NULLIF($1, '')::timestamp, CURRENT_DATE)
+  AND t.date <= COALESCE(NULLIF($2, '')::timestamp, CURRENT_DATE)
+ORDER BY t.transaction_id ASC;
+;`;
+const queryValues = [startDate , endDate]
+  try {
+    return pool
+      .query(queryStr,queryValues)
+      .then((result) => {
+        if (result.rows.length < 1) {
+          return { status: 200, msg: [] };
+        }
+        return { status: 200, msg: result.rows };
+      })
+      .catch((error) => {
+        console.log("Error Funtions getDataBestseller" + error);
+        return { status: 201, msg: error };
+      });
+  } catch (error) {
+    console.log("Error Connect : " + error);
+    return { status: 400, msg: error };
+  }
+};
 
 
 
+const ReportDataProduct = async (startDate , endDate) => {
+  const queryStr = `                  
+    --  Product
+    SELECT
+        p.product_id::text           AS item_id,
+        p.product_name               AS item_name,
+        SUM(i.qty)                   AS total_qty,
+        p.unit_price                 AS unit_price,
+        SUM(i.qty) * p.unit_price    AS amount
+    FROM tg_index i
+    JOIN tg_product p ON i.product_id = p.product_id
+    JOIN tg_transaction t ON i.transaction_id = t.transaction_id
+    WHERE t.date >= COALESCE(NULLIF($1, '')::timestamp, CURRENT_DATE)
+  AND t.date <= COALESCE(NULLIF($2, '')::timestamp, CURRENT_DATE)
+    GROUP BY p.product_id, p.product_name, p.unit_price
+
+    UNION ALL
+
+    -- Option (Cheese)
+    SELECT
+        o.option_id::text            AS item_id,
+        o.option_name_thai           AS item_name,
+        SUM(ot.option_qty)   AS total_qty,
+        o.option_price                AS unit_price,
+        SUM(ot.option_qty) *  o.option_price AS amount
+    FROM tg_index i
+    JOIN tg_option_transaction ot ON i.index = ot.index
+    JOIN tg_option o ON ot.option_id = o.option_id
+    JOIN tg_transaction t ON i.transaction_id = t.transaction_id
+    WHERE t.date >= COALESCE(NULLIF($1, '')::timestamp, CURRENT_DATE)
+  AND t.date <= COALESCE(NULLIF($2, '')::timestamp, CURRENT_DATE)
+      AND o.option_id = 38
+    GROUP BY o.option_id, o.option_name_thai
+
+
+
+
+;
+;`;
+const queryValues = [startDate , endDate]
+  try {
+    return pool
+      .query(queryStr,queryValues)
+      .then((result) => {
+        if (result.rows.length < 1) {
+          return { status: 200, msg: [] };
+        }
+        return { status: 200, msg: result.rows };
+      })
+      .catch((error) => {
+        console.log("Error Funtions getDataBestseller" + error);
+        return { status: 201, msg: error };
+      });
+  } catch (error) {
+    console.log("Error Connect : " + error);
+    return { status: 400, msg: error };
+  }
+};
+
+
+
+const ReportDataPayment = async (startDate , endDate) => {
+  const queryStr = `                  
+SELECT
+payment,
+COUNT(*) AS total_count,
+SUM(amount) AS total_amount
+FROM tg_transaction
+ WHERE date >= COALESCE(NULLIF($1, '')::timestamp, CURRENT_DATE)
+  AND date <= COALESCE(NULLIF($2, '')::timestamp, CURRENT_DATE)
+GROUP BY payment;`;
+const queryValues = [startDate , endDate]
+  try {
+    return pool
+      .query(queryStr,queryValues)
+      .then((result) => {
+        if (result.rows.length < 1) {
+          return { status: 200, msg: [] };
+        }
+        return { status: 200, msg: result.rows };
+      })
+      .catch((error) => {
+        console.log("Error Funtions ReportDataPayment" + error);
+        return { status: 201, msg: error };
+      });
+  } catch (error) {
+    console.log("Error Connect : " + error);
+    return { status: 400, msg: error };
+  }
+};
+
+
+const ReportDataInPayment = async (
+  startDate,
+  endDate,
+  payment,
+  page = 1,
+  limit = 20
+) => {
+  const offset = (page - 1) * limit;
+
+  try {
+    /* ===============================
+       1) COUNT ทั้งหมด (เร็วมาก)
+       =============================== */
+    const countRes = await pool.query(
+      `
+      SELECT COUNT(*)::int AS total
+      FROM tg_transaction t
+      WHERE t.date >= COALESCE(NULLIF($1, '')::timestamp, CURRENT_DATE)
+        AND t.date <= COALESCE(NULLIF($2, '')::timestamp, CURRENT_DATE)
+        AND t.payment = $3
+      `,
+      [startDate, endDate, payment]
+    );
+
+    const total = countRes.rows[0]?.total || 0;
+
+    /* ===============================
+       2) DATA (จำกัด transaction ก่อน)
+       =============================== */
+    const dataRes = await pool.query(
+      `
+      WITH tx_page AS (
+        SELECT
+          t.transaction_id,
+          t.order_number,
+          t.payment,
+          t.amount,
+          t.time,
+          t.slips
+        FROM tg_transaction t
+        WHERE t.date >= COALESCE(NULLIF($1, '')::timestamp, CURRENT_DATE)
+          AND t.date <= COALESCE(NULLIF($2, '')::timestamp, CURRENT_DATE)
+          AND t.payment = $3
+        ORDER BY t.transaction_id DESC
+        LIMIT $4 OFFSET $5
+      ),
+
+      item_cooking AS (
+        SELECT
+          i.transaction_id,
+          jsonb_agg(
+            jsonb_build_object(
+              'product_name', p.product_name,
+              'qty', i.qty,
+              'unit_price', p.unit_price,
+              'option_name_thai', o.option_name_thai,
+              'option_qty',
+                CASE
+                  WHEN ot.unit_price = 0 THEN 0
+                  ELSE ot.option_qty
+                END,
+              'option_sum', ot.unit_price * ot.option_qty
+            )
+            ORDER BY ot.item_index
+          ) AS items
+        FROM tg_index i
+        JOIN tx_page tx ON tx.transaction_id = i.transaction_id
+        LEFT JOIN tg_product p ON i.product_id = p.product_id
+        LEFT JOIN tg_option_transaction ot ON i.index = ot.index
+        LEFT JOIN tg_option o ON ot.option_id = o.option_id
+        WHERE p.product_id NOT IN (18)
+        GROUP BY i.transaction_id
+      )
+
+      SELECT
+        tx.transaction_id,
+        tx.order_number,
+        q.queue,
+        ic.items,
+        ROUND(tx.amount / 1.07, 2) AS before_vat,
+        ROUND(tx.amount - (tx.amount / 1.07), 2) AS vat_amount,
+        ROUND(tx.amount, 2) AS after_vat,
+        tx.payment,
+        tx.time,
+        tx.slips
+      FROM tx_page tx
+      LEFT JOIN item_cooking ic ON tx.transaction_id = ic.transaction_id
+      LEFT JOIN tg_queue q ON tx.transaction_id = q.transaction_id
+      ORDER BY tx.transaction_id DESC
+      `,
+      [startDate, endDate, payment, limit, offset]
+    );
+
+    return {
+      status: 200,
+      msg: dataRes.rows,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+
+  } catch (error) {
+    console.error('ReportDataInPayment ERROR:', error);
+    return { status: 500, msg: error };
+  }
+};
 
 
 
@@ -480,5 +767,12 @@ module.exports = {
   upProductActive,
   getAllData,
   //---------------------
-  GetdataError
+  GetdataError,
+  //----------Report
+  ReportData,
+  ReportDataProduct,
+
+  ReportDataPayment,
+  ReportDataInPayment
+
 };
