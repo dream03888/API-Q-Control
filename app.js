@@ -10,13 +10,13 @@ pgClient.query("LISTEN queue_trigger");
 
 // ✅ เมื่อ PostgreSQL trigger ทำงาน
 pgClient.on("notification", (msg) => {
-  console.log("🔔 Trigger fired:", msg.payload);
+  // console.log("🔔 Trigger fired:", msg.payload);
   // แจ้งทุก client ให้ refresh queue
   io.emit("queue_refresh");
 });
 
 io.on("connection", (socket) => {
-  console.log(`Socket connect id: ${socket.id}`);
+  // console.log(`Socket connect id: ${socket.id}`);
 
   // =========================================================
   // ✅ REGISTER ROOM
@@ -25,13 +25,13 @@ io.on("connection", (socket) => {
   // 🔌 ฝั่ง Display เข้ามา join ห้อง “display”
   socket.on("register_display", () => {
     socket.join("display");
-    console.log(`📺 Display joined: ${socket.id}`);
+    // console.log(`📺 Display joined: ${socket.id}`);
   });
 
   // 🧑‍💻 (optional) ฝั่ง operator
   socket.on("register_operator", () => {
     socket.join("operator");
-    console.log(`🧑‍💻 Operator joined: ${socket.id}`);
+    // console.log(`🧑‍💻 Operator joined: ${socket.id}`);
   });
 
   // =========================================================
@@ -295,51 +295,51 @@ socket.on("req_update_active", async (data) => {
     socket.emit("return_getDataError", result);
   });
 //----------Report
-   socket.on("reportData", async (startDate , endDate) => {
-    const result = await google_api.ReportData(startDate , endDate);
-    socket.emit("return_reportData", result);
-  });
+//    socket.on("reportData", async (startDate , endDate) => {
+//     const result = await google_api.ReportData(startDate , endDate);
+//     socket.emit("return_reportData", result);
+//   });
 
 
-socket.on("reportDataProduct", async (startDate , endDate) => {
-    const result = await google_api.ReportDataProduct(startDate , endDate);
-    socket.emit("return_reportDataProduct", result);
-  });
+// socket.on("reportDataProduct", async (startDate , endDate) => {
+//     const result = await google_api.ReportDataProduct(startDate , endDate);
+//     socket.emit("return_reportDataProduct", result);
+//   });
 
 
-socket.on("ReportDataPayment", async (startDate , endDate) => {
-    const result = await google_api.ReportDataPayment(startDate , endDate);
-    socket.emit("return_ReportDataPayment", result);
-  });
+// socket.on("ReportDataPayment", async (startDate , endDate) => {
+//     const result = await google_api.ReportDataPayment(startDate , endDate);
+//     socket.emit("return_ReportDataPayment", result);
+//   });
 
 
-socket.on("ReportDataInPayment", async (payload) => {
-  try {
-    const {
-      startDate,
-      endDate,
-      payment,
-      page = 1,
-      limit = 20
-    } = payload || {};
+// socket.on("ReportDataInPayment", async (payload) => {
+//   try {
+//     const {
+//       startDate,
+//       endDate,
+//       payment,
+//       page = 1,
+//       limit = 20
+//     } = payload || {};
 
-    const result = await google_api.ReportDataInPayment(
-      startDate,
-      endDate,
-      payment,
-      page,
-      limit
-    );
+//     const result = await google_api.ReportDataInPayment(
+//       startDate,
+//       endDate,
+//       payment,
+//       page,
+//       limit
+//     );
 
-    socket.emit("return_ReportDataInPayment", result);
+//     socket.emit("return_ReportDataInPayment", result);
 
-  } catch (err) {
-    socket.emit("return_ReportDataInPayment", {
-      status: 500,
-      msg: err
-    });
-  }
-});
+//   } catch (err) {
+//     socket.emit("return_ReportDataInPayment", {
+//       status: 500,
+//       msg: err
+//     });
+//   }
+// });
 
 
 
@@ -347,7 +347,7 @@ socket.on("ReportDataInPayment", async (payload) => {
 
 
   socket.on("disconnect", () => {
-    console.log(`❌ Socket disconnected: ${socket.id}`);
+    // console.log(`❌ Socket disconnected: ${socket.id}`);
   });
 });
 

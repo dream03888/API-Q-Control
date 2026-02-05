@@ -8,7 +8,7 @@ function formatQueueNumber(num) {
 
 // ✅ เรียก Google Translate TTS แล้วส่งเสียงแบบ base64 กลับ
 async function getGoogleTextToSpeech(text, transaction_id, language = "en") {
-  console.log("🔊 Google TTS:", text);
+  // console.log("🔊 Google TTS:", text);
   try {
     const googleTtsUrl = "https://translate.google.com/translate_tts";
     const params = new URLSearchParams({
@@ -352,7 +352,7 @@ const getAllData = async () => {
 
 
 const upProductActive = async (data) => {
-  console.log("data", data);
+  // console.log("data", data);
   try {
     for (let item of data) {
       let activeValue = item.active ? "true" : "false";
@@ -673,7 +673,7 @@ const ReportDataInPayment = async (
           t.payment,
           t.amount,
           t.time,
-          t.slips
+  --        t.slips
         FROM tg_transaction t
         WHERE t.date >= COALESCE(NULLIF($1, '')::timestamp, CURRENT_DATE)
           AND t.date <= COALESCE(NULLIF($2, '')::timestamp, CURRENT_DATE)
@@ -719,7 +719,7 @@ const ReportDataInPayment = async (
         ROUND(tx.amount, 2) AS after_vat,
         tx.payment,
         tx.time,
-        tx.slips
+  --      tx.slips
       FROM tx_page tx
       LEFT JOIN item_cooking ic ON tx.transaction_id = ic.transaction_id
       LEFT JOIN tg_queue q ON tx.transaction_id = q.transaction_id
